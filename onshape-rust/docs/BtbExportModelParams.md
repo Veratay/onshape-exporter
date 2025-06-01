@@ -1,0 +1,67 @@
+# BtbExportModelParams
+
+## Properties
+
+Name | Type | Description | Notes
+------------ | ------------- | ------------- | -------------
+**angle_tolerance** | Option<**f64**> |  | [optional]
+**batch_all_flat_patterns** | Option<**bool**> |  | [optional]
+**batch_flat_patterns** | Option<**bool**> |  | [optional]
+**chord_tolerance** | Option<**f64**> |  | [optional]
+**cloud_object_id** | Option<**String**> |  | [optional]
+**cloud_storage_account_id** | Option<**String**> |  | [optional]
+**configuration** | Option<**String**> |  | [optional]
+**destination_name** | Option<**String**> |  | [optional]
+**document_id** | **String** |  | 
+**document_version_id** | Option<**String**> |  | [optional]
+**element_id** | Option<**String**> |  | [optional]
+**element_ids** | Option<**String**> |  | [optional]
+**email_link** | Option<**bool**> |  | [optional]
+**email_message** | Option<**String**> |  | [optional]
+**email_subject** | Option<**String**> |  | [optional]
+**email_to** | Option<**String**> | Base64-encoded email address. When sending an email, the `fromUserId` parameter is also required. | [optional]
+**exclude_hidden_entities** | Option<**bool**> | If `true`, the exported file won't have any parts and assemblies marked as hidden | [optional]
+**feature_ids** | Option<**String**> |  | [optional]
+**flatten** | Option<**bool**> |  | [optional]
+**format** | **String** |  | 
+**from_user_id** | Option<**String**> | Your user ID. Required when providing the `emailTo` parameter. | [optional]
+**grouping** | Option<**String**> |  | [optional]
+**ignore_export_rules_for_contents** | Option<**bool**> |  | [optional]
+**include_bend_centerlines** | Option<**bool**> |  | [optional]
+**include_bend_lines** | Option<**bool**> |  | [optional]
+**include_cbore_csink** | Option<**bool**> |  | [optional]
+**include_export_ids** | Option<**bool**> |  | [optional]
+**include_formed_centermarks** | Option<**bool**> |  | [optional]
+**include_formed_outlines** | Option<**bool**> |  | [optional]
+**include_sketches** | Option<**bool**> |  | [optional]
+**is_parting_out** | Option<**bool**> |  | [optional]
+**link_document_id** | Option<**String**> |  | [optional]
+**link_document_workspace_id** | Option<**String**> |  | [optional]
+**max_facet_width** | Option<**f64**> |  | [optional]
+**microversion** | Option<**String**> |  | [optional]
+**min_facet_width** | Option<**f64**> |  | [optional]
+**mode** | Option<**String**> |  | [optional]
+**occurrences_to_export** | Option<**String**> |  | [optional]
+**part_ids** | Option<**String**> |  | [optional]
+**part_query** | Option<**String**> |  | [optional]
+**password** | Option<**String**> |  | [optional]
+**password_required** | Option<**bool**> |  | [optional]
+**resolution** | Option<**String**> |  | [optional]
+**scale** | Option<**f64**> |  | [optional]
+**send_copy_to_me** | Option<**bool**> |  | [optional]
+**sheet_metal_flat** | Option<**bool**> |  | [optional]
+**splines_as_polylines** | Option<**bool**> |  | [optional]
+**store_in_document** | Option<**bool**> |  | [optional]
+**trigger_auto_download** | Option<**bool**> |  | [optional]
+**units** | Option<**String**> |  | [optional]
+**use_y_axis_as_up** | Option<**bool**> | If `true`, the exported file will have all the parts and assemblies reoriented such that the Z-axis within Onshape becomes the Y-axis in the exported file. | [optional]
+**user_id** | Option<**String**> |  | [optional]
+**valid_for_days** | Option<**i32**> |  | [optional]
+**version** | Option<**String**> |  | [optional]
+**view** | Option<**String**> |  | [optional]
+**workspace_id** | Option<**String**> |  | [optional]
+**zip_single_file_output** | Option<**bool**> |  | [optional]
+
+[[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
+
+
