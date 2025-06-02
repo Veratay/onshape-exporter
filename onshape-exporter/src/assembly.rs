@@ -32,7 +32,7 @@ pub struct AssemblyNode {
 
 pub type Occurrence = Vec<String>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Feature {
     pub mate_type: String,
     pub _0: Occurrence,

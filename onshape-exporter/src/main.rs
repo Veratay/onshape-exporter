@@ -1,6 +1,6 @@
 use clap::Parser;
 use assembly::load_assemblies;
-use graph::part_groups;
+use graph::PartGroupGraph;
 use onshape_rust::apis::configuration::Configuration;
 use url::Url;
 
@@ -49,7 +49,7 @@ async fn main() {
 
     println!("{:#?}",assemblies);
 
-    let part_groups = part_groups(root_assembly, &assemblies);
+    let part_groups = PartGroupGraph::new(root_assembly, &assemblies);
 
     println!("{:#?}",part_groups)
 }
