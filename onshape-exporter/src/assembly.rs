@@ -122,12 +122,12 @@ pub async fn load_assemblies(configuration: Configuration, root_assembly: Entity
     let semaphore = Arc::new(Semaphore::new(n_concurrent_connections));
     let results = Arc::new(Mutex::new(HashMap::new()));
 
-    load_assembly(configuration, root_assembly, seen, semaphore, Arc::clone(&results), true).await;
+    recurse_load_assembly_parallel(configuration, root_assembly, seen, semaphore, Arc::clone(&results), true).await;
 
     Arc::try_unwrap(results).unwrap().into_inner()
 }
 
-async fn load_assembly(
+async fn recurse_load_assembly_parallel(
     configuration: Configuration,
     assembly: EntityID,
     seen: Arc<Mutex<HashSet<EntityID>>>,
@@ -172,7 +172,7 @@ async fn load_assembly(
         let seen = Arc::clone(&seen);
         let semaphore = Arc::clone(&semaphore);
         let results = Arc::clone(&results);
-        async move { load_assembly(configuration, it, seen, semaphore, results, false).await }
+        async move { recurse_load_assembly_parallel(configuration, it, seen, semaphore, results, false).await }
     }))
     .await;
 }

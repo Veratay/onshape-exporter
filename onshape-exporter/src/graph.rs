@@ -13,7 +13,7 @@ struct PartGroup {
     parts: HashSet<Occurrence>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ActiveMate {
     feature: Feature,
     other_part: usize,
@@ -27,17 +27,20 @@ impl PartGroup {
         }
     }
 
-    fn prepend_prefix(&self, prefix: &Occurrence) -> HashSet<Occurrence> {
-        let mut result = HashSet::with_capacity(self.parts.len());
+    fn prepend_prefix(&self, prefix: &Occurrence) -> PartGroup {
+        let mut parts = HashSet::with_capacity(self.parts.len());
 
         for occurrence in self.parts.iter() {
             let mut new_occurrence = Vec::with_capacity(prefix.len() + occurrence.len());
             new_occurrence.extend_from_slice(prefix);
             new_occurrence.extend_from_slice(occurrence);
-            result.insert(new_occurrence);
+            parts.insert(new_occurrence);
         }
 
-        result
+        let mut res = PartGroup::new(parts);
+        res.edges = self.edges.clone();
+
+        res
     }
 
     fn contains(&self, occurrence: &Occurrence) -> bool {
@@ -74,14 +77,14 @@ impl PartGroupGraph {
             }
         }
 
-        // dfs building the part groups, memoizing as we go
-        let mut memoized_part_groups: HashMap<EntityID, Vec<HashSet<Occurrence>>> = HashMap::new();
+        let mut memoized_part_groups = HashMap::new();
 
         let mut res = Self {
             next_id: 0,
             groups: HashMap::new(),
         };
 
+        // dfs building the part groups, memoizing as we go
         res.recurse(
             &assemblies[&root],
             &mut vec![],
@@ -124,12 +127,19 @@ impl PartGroupGraph {
         id
     }
 
+    fn insert(&mut self, group: PartGroup) -> usize {
+        self.groups.insert(self.next_id, group);
+        let id = self.next_id;
+        self.next_id += 1;
+        id
+    }
+
     fn recurse(
         &mut self,
         assembly: &AssemblyData,
         path: &mut Occurrence,
         assemblies: &HashMap<EntityID, AssemblyData>,
-        memoized_part_groups: &mut HashMap<EntityID, Vec<HashSet<Vec<String>>>>,
+        memoized_part_groups: &mut HashMap<EntityID, HashMap<usize, PartGroup>>,
         memoization_opportunities: &HashMap<EntityID, usize>,
     ) {
         for s in assembly.subassemblies.iter() {
@@ -145,28 +155,47 @@ impl PartGroupGraph {
         }
 
         // use memoization when available
-        // if let Some(groups) = memoized_part_groups.get(&assembly.id) {
-        //     // need to temp remove current assembly id from path because it is already in memoized
-        //     // groups.
-        //     let id = path.pop();
-        //     part_groups.extend(groups.iter().map(|it| prepend_prefix(it, path)));
-        //     if let Some(id) = id {
-        //         path.push(id);
-        //     }
-        //
-        //     return;
-        // }
+        if let Some(groups) = memoized_part_groups.get(&assembly.id) {
+            let mut id_map: HashMap<usize, usize> = HashMap::new();
+
+            // copy groups, making note of new ids
+            for (i, g) in groups.iter() {
+                let new_g = g.prepend_prefix(path);
+
+                println!("new_g: {:#?}", new_g);
+
+                id_map.insert(*i, self.insert(new_g));
+            }
+
+            // update links to new ids
+            for i in id_map.values() {
+                for e in self.groups.get_mut(i).unwrap().edges.iter_mut() {
+                    println!("Accessing: {}", e.other_part);
+                    e.other_part = *id_map.get(&e.other_part).unwrap();
+                }
+            }
+
+            return;
+        }
+
+        let will_memoize = memoization_opportunities
+            .get(&assembly.id)
+            .is_some_and(|it| *it > 1);
+
+        // keeps track of what part groups are from this assembly for recording memo
+        let mut assembly_part_groups = HashSet::new();
 
         let mut bound_to_origin = Vec::new();
-
         for f in assembly.features.iter() {
             // record parts bound to origin TODO: handle fixed parts.
             match (f._0.is_empty(), f._1.is_empty()) {
                 (true, false) => {
                     bound_to_origin.push(f._1.clone());
+                    continue;
                 }
                 (false, true) => {
                     bound_to_origin.push(f._0.clone());
+                    continue;
                 }
                 _ => {}
             }
@@ -176,42 +205,66 @@ impl PartGroupGraph {
             path0.extend_from_slice(&f._0[0..]);
             path1.extend_from_slice(&f._1[0..]);
 
-            self.handle_mate(path0, path1, Some(f));
+            let groups = self.handle_mate(path0, path1, Some(f));
 
-            println!("Feature: {:#?}", f);
-            println!("----------------");
-            println!("{:#?}", self.groups);
+            if will_memoize {
+                assembly_part_groups.insert(groups[0]);
+                assembly_part_groups.insert(groups[1]);
+            }
+
+            // println!("Feature: {:#?}", f);
+            // println!("----------------");
+            // println!("{:#?}", self.groups);
         }
 
         // if there are multiple parts fixed to the origin they are effectively fixed to eachother.
         for parts in bound_to_origin.windows(2) {
-            self.handle_mate(parts[0].clone(), parts[1].clone(), None)
+            let groups = self.handle_mate(parts[0].clone(), parts[1].clone(), None);
+
+            if will_memoize {
+                assembly_part_groups.insert(groups[0]);
+                assembly_part_groups.insert(groups[1]);
+            }
         }
 
-        // memoize if needed.
-        // if memoization_opportunities
-        //     .get(&assembly.id)
-        //     .is_some_and(|it| *it > 1)
-        // {
-        //     let mut memoized_part_group = HashMap::new();
-        //
-        //     for g in part_groups.iter() {
-        //         let mut new_group = HashSet::with_capacity(g.len());
-        //
-        //         for occurrence in g.iter().filter(|it| it.contains(path.last().unwrap())) {
-        //             let mut new_occurrence = Vec::with_capacity(occurrence.len() - path.len() + 1);
-        //             new_occurrence.extend_from_slice(&occurrence[path.len() - 1..]);
-        //             new_group.insert(new_occurrence);
-        //         }
-        //
-        //         memoized_part_group.push(new_group);
-        //     }
-        //
-        //     memoized_part_groups.insert(assembly.id.clone(), memoized_part_group);
-        // }
+        // record memo if needed.
+        if will_memoize {
+            let mut memoized = HashMap::new();
+
+            for (i, g) in assembly_part_groups
+                .into_iter()
+                // some of the part groups that have been created during processing this assembly
+                // will have already merged into others
+                .filter_map(|i| self.groups.get(&i).map(|g| (i, g)))
+            {
+                let mut parts = HashSet::with_capacity(g.parts.len());
+
+                for occurrence in g.parts.iter() {
+                    // stripping the occurrence path to be relative to this assembly.
+                    // if the path is ["TopAssembly","ThisAssembly","part"]
+                    // the memoized path will be ["part"]
+                    let mut new_occurrence = Vec::with_capacity(occurrence.len() - path.len());
+                    new_occurrence.extend_from_slice(&occurrence[path.len()..]);
+                    parts.insert(new_occurrence);
+                }
+
+                let mut new_group = PartGroup::new(parts);
+
+                new_group.edges = g.edges.clone();
+
+                memoized.insert(i, new_group);
+            }
+
+            memoized_part_groups.insert(assembly.id.clone(), memoized);
+        }
     }
 
-    fn handle_mate(&mut self, path0: Occurrence, path1: Occurrence, feature: Option<&Feature>) {
+    fn handle_mate(
+        &mut self,
+        path0: Occurrence,
+        path1: Occurrence,
+        feature: Option<&Feature>,
+    ) -> [usize; 2] {
         let i0 = self
             .groups
             .iter()
@@ -226,18 +279,22 @@ impl PartGroupGraph {
         if feature.is_none() || feature.unwrap().mate_type == "FASTENED" {
             match (i0, i1) {
                 (None, None) => {
-                    self.new_group([path0, path1]);
+                    let new = self.new_group([path0, path1]);
+                    [new; 2]
                 }
                 (None, Some(group)) => {
                     self.groups.get_mut(&group).unwrap().insert(path0);
+                    [group; 2]
                 }
                 (Some(group), None) => {
                     self.groups.get_mut(&group).unwrap().insert(path1);
+                    [group; 2]
                 }
                 (Some(group0), Some(group1)) => {
                     if group0 != group1 {
                         self.merge_groups(group0, group1);
                     }
+                    [group0; 2]
                 }
             }
         } else {
@@ -252,6 +309,8 @@ impl PartGroupGraph {
                 feature: feature.unwrap().clone(),
                 other_part: i0,
             });
+
+            [i0, i1]
         }
     }
 }
